@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const morgan = require("morgan");
+require("dotenv").config();
 const app = express();
 app.use(express.json());
 app.use(cors());
@@ -50,18 +51,13 @@ app.get("/api/data", (request, response) => {
 });
 //add new location
 app.post("/api/data/", (request, response) => {
-  const body = request.body;
-  if (body.city) {
-    const location = {
-      id: createId(),
-      city: body.city,
-      geoLocation: { lat: body.geoLocation.lat, lon: body.geoLocation.lon },
-    };
-    locations = locations.concat(location);
-    response.send(location);
-  } else {
-    response.status(400).json({ error: "content is missing" });
-  }
+  const location = {
+    id: createId(),
+    createAt: Date.now(),
+  };
+
+  locations = locations.concat(location);
+  response.send(location);
 });
 //update location
 app.put("/api/data/:id", (request, response) => {
@@ -97,7 +93,7 @@ app.delete("/api/data/:id", (request, response) => {
   );
   console.log("deleted", deleted);
 });
-const PORT = "8080";
+const PORT = process.env.PORT || "8080";
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
