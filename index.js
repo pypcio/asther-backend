@@ -1,99 +1,107 @@
 const express = require("express");
-const cors = require("cors");
-const mongoose = require("mongoose");
 const morgan = require("morgan");
+const cors = require("cors");
 require("dotenv").config();
+// const mongoose = require("mongoose");
+const Location = require("./models/location.js");
 const app = express();
+morgan.token("data", function (req, res) {
+  return JSON.stringify(req.body);
+});
+// app.use(express.static("dist"));
 app.use(express.json());
 app.use(cors());
-morgan.token("data", (request, response) => {
-  return JSON.stringify(request.body);
-});
 app.use(
   morgan(":method :url :status :res[content-length] - :response-time ms :data")
 );
+// sync database
 
-let locations = [
-  {
-    id: 1,
-    city: "Wrocław",
-    geoLocation: { lat: "51.23", lon: "17.23" },
-  },
-  {
-    id: 2,
-    city: "Kętrzyn",
-    geoLocation: { lat: "54.079496", lon: "21.371970" },
-  },
-  {
-    id: 3,
-    city: "Olsztyn",
-    geoLocation: { lat: "53.772939", lon: "20.471876" },
-  },
-  {
-    id: 4,
-    city: "Gdańsk",
-    geoLocation: { lat: "54.361375", lon: "18.608992" },
-  },
-];
-const createId = () => {
-  return Math.random().toString(36).substring(2, 9);
-};
-//get location by id
-app.get("/api/data/:id", (request, response) => {
-  const findLocation = locations.find(
-    (l) => l.id.toString() === request.params.id.toString()
-  );
-  response.send(findLocation);
-});
-//get all
-app.get("/api/data", (request, response) => {
-  response.send(locations);
-});
-//add new location
-app.post("/api/data/", (request, response) => {
-  const location = {
-    id: createId(),
-    createAt: Date.now(),
-  };
+// const generateId = () => {
+//   const newID = Math.random().toString(36).substring(2, 9);
+//   return newID;
+// };
 
-  locations = locations.concat(location);
-  response.send(location);
+//do wywalenia strona
+// app.get("/", (req, res) => {
+//   res.send("<h3>Hello</h3>");
+// });
+//GET all data from MongoDB
+app.get("/api/data", (req, res) => {
+  Location.find({}).then((location) => {
+    res.json(location);
+  });
 });
-//update location
-app.put("/api/data/:id", (request, response) => {
-  const id = request.params.id.toString();
-  const body = request.body;
-  //   console.log("id ", typeof id, "body ", body);
-  const updatedLocation = locations.find((l) => l.id.toString() === id);
-  //   console.log("update: ", updatedLocation);
-  if (updatedLocation) {
-    const newLocation = {
-      id: id,
-      city: body.city,
-      geoLocation: { lat: body.geoLocation.lat, lon: body.geoLocation.lon },
-    };
-    console.log("newLocation", newLocation);
-    locations = locations.map((location) => {
-      if (location.id.toString() === id) {
-        return newLocation;
+//GET 1 person from MongoDB
+app.get("/api/data/:id", (request, response, next) => {
+  Location.findById(request.params.id)
+    .then((findLocation) => {
+      if (findLocation) {
+        response.json(findLocation);
+      } else {
+        response.status(404).end();
       }
-      return location;
-    });
-    response.send(newLocation);
-  } else {
-    response.status(400).json({ error: "wrong id" });
-  }
+    })
+    .catch((error) => next(error));
+});
+//GET info about api
 
-  console.log(updatedLocation);
+app.get("/api/info", (req, res) => {
+  const time = new Date();
+  Location.find({}).then((locations) => {
+    res.send(
+      `<p>Asther has info for ${locations.length} locations</p> <br/> <p>${time}</p>`
+    );
+  });
 });
-//delete location
-app.delete("/api/data/:id", (request, response) => {
-  const deleted = locations.filter(
-    (l) => l.id.toString() !== request.params.id.toString()
-  );
-  console.log("deleted", deleted);
+
+//create person, send to mongoDB and back to front using response.json()
+app.post("/api/data", (request, response, next) => {
+  // const body = request.body;
+  // console.log("body", body);
+  // if (body.name === undefined || body.number === undefined) {
+  //   return response.status(400).json({ error: "content is missing" });
+  // }
+  const newLocation = new Location({ createdAt: Date.now() });
+  newLocation
+    .save()
+    .then((savedLocation) => {
+      response.json(savedLocation);
+    })
+    .catch((error) => next(error));
 });
-const PORT = process.env.PORT || "8080";
+//delete
+app.delete("/api/data/:id", (request, response, next) => {
+  Location.findByIdAndRemove(request.params.id)
+    .then((result) => {
+      response.status(204).end();
+    })
+    .catch((error) => next(error));
+});
+//update
+app.put("/api/data/:id", (request, response, next) => {
+  const body = request.body;
+  const updateObject = { ...body };
+  Location.findByIdAndUpdate(request.params.id, updateObject, { new: true })
+    .then((updatedLocation) => {
+      response.json(updatedLocation);
+    })
+    .catch((error) => next(error));
+});
+//out of route
+const unknownEndpoint = (request, response) => {
+  response.status(404).send({ error: "unknown endpoint" });
+};
+app.use(unknownEndpoint);
+//error handler
+const errorHandler = (error, request, response, next) => {
+  console.log(error.message);
+  if (error.name === "CastError") {
+    return response.status(400).send({ error: "malformatted id" });
+  }
+  next(error);
+};
+app.use(errorHandler);
+const PORT = process.env.PORT;
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
