@@ -5,7 +5,7 @@ require("dotenv").config();
 //middleware
 const ErrorControll = require("./controllers/ErrorControll");
 //routes
-// const authRoute = require("./routes/users.js");
+const authRoute = require("./routes/users.js");
 const locationRoute = require("./routes/locations.js");
 
 //app
@@ -20,7 +20,7 @@ app.use(
   morgan("dev")
 );
 //routes
-// app.use("/api/user", authRoute);
+app.use("/api/user", authRoute);
 app.use("/api/data", locationRoute);
 
 //out of route

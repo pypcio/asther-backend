@@ -1,13 +1,17 @@
+//CRUD API for user data
+//secured routes with jwt
 const express = require("express");
 const router = express.Router();
-const servises = require("../controllers/locationControll");
+const userController = require("../controllers/locationControll");
+const authenticate = require("../middleware/authenticate");
 
-router.get("/download", servises.getDownloads);
-router.get("/", servises.getAllLocation);
-router.get("/:id", servises.getOneLocation);
-router.get("info", servises.getInfoLocation);
-router.post("/", servises.createLocation);
-router.delete("/:id", servises.deleteLocation);
-router.put("/:id", servises.updateLocation);
+router.use(authenticate);
 
+router.get("/", userController.getUser);
+router.delete("/", userController.deleteUser);
+router.get("/locations", userController.getUserLocations);
+router.get("/locations/:locationId", userController.getUserLocation);
+router.post("/locations", userController.createUserLocation);
+router.put("/locations/:locationId", userController.updateUserLocation);
+router.delete("/locations/:locationId", userController.deleteUserLocation);
 module.exports = router;
