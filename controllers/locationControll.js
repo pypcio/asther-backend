@@ -1,11 +1,12 @@
 const User = require("../models/user.js");
-
+const { matchSorter } = require("match-sorter");
+const mongoose = require("mongoose");
 //get 1 User
 const getUser = (request, response, next) => {
   const {
     user: { id },
   } = request.user;
-  console.log("dane", id);
+  // console.log("dane", id);
   User.findById(id)
     .then((user) => {
       response.json(user);
@@ -37,6 +38,10 @@ const getUserLocations = async (request, response, next) => {
   } = request.user;
   try {
     const result = await User.findById(id);
+    // console.log("dane: ", result.data);
+    // if (query) {
+    //   result = matchSorter(result, query, { keys: ["city"] });
+    // }
     response.json(result.data);
   } catch (error) {
     next(error);
@@ -61,12 +66,17 @@ const createUserLocation = async (request, response, next) => {
   const {
     user: { id },
   } = request.user;
-  const newLocation = { location: { createdAt: Date.now() } };
+  const newLocation = {
+    location: { createdAt: Date.now() },
+  };
   try {
     const user = await User.findById(id);
     user.data.push(newLocation);
     const saveUser = await user.save();
-    response.json(newLocation);
+    const locationIndex = saveUser.data.findIndex(
+      (n) => n.location.createdAt === newLocation.location.createdAt
+    );
+    response.json(saveUser.data[locationIndex]);
   } catch (error) {
     next(error);
   }
@@ -77,11 +87,14 @@ const updateUserLocation = async (request, response, next) => {
     user: { id },
   } = request.user;
   const locationId = request.params.locationId;
+  // console.log("locationId", locationId);
   const { lat, lon, timezone, timezone_offset, current, hourly, daily, city } =
     request.body;
   try {
     const user = await User.findById(id);
-    const locationIndex = user.data.findIndex((n) => (n._id = locationId));
+    const locationIndex = user.data.findIndex(
+      (n) => n._id.toString() === locationId
+    );
     user.data[locationIndex].location.city = city;
     user.data[locationIndex].location.lat = lat;
     user.data[locationIndex].location.lon = lon;
@@ -96,6 +109,33 @@ const updateUserLocation = async (request, response, next) => {
     next(error);
   }
 };
+//update all locations
+const updateAllUserLocations = async (request, response, next) => {
+  const {
+    user: { id },
+  } = request.user;
+  updatedArray = request.body;
+  // console.log("updatedArray", updatedArray);
+  try {
+    const user = await User.findById(id);
+    if (updatedArray.length !== 0) {
+      for (let i = 0; i < user.data.length; i++) {
+        if (user.data[i].location.city !== undefined) {
+          user.data[i].location.current = updatedArray[i].current;
+          user.data[i].location.hourly = updatedArray[i].hourly;
+          user.data[i].location.daily = updatedArray[i].daily;
+        }
+      }
+      const saveUpdatedLocation = await user.save();
+      response.json(user.data);
+    } else {
+      // Handle the case when updatedArray is empty.
+      response.status(400).json({ message: "No data to update." });
+    }
+  } catch (error) {
+    next(error);
+  }
+};
 //delete one location
 const deleteUserLocation = async (request, response, next) => {
   const {
@@ -104,7 +144,11 @@ const deleteUserLocation = async (request, response, next) => {
   const locationId = request.params.locationId;
   try {
     const user = await User.findById(id);
-    user.data = user.data.filter((n) => n._id.toString() !== locationId);
+    const locationIndex = user.data.findIndex(
+      (n) => n._id.toString() === locationId
+    );
+    user.data.splice(locationIndex, 1);
+    // user.data = user.data.filter((n) => !n._id.toString() !== locationId);
     const deleteLocation = await user.save();
     response.status(204).end();
   } catch (error) {
@@ -121,4 +165,5 @@ module.exports = {
   deleteUserLocation,
   createUserLocation,
   updateUserLocation,
+  updateAllUserLocations,
 };

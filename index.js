@@ -7,9 +7,10 @@ const ErrorControll = require("./controllers/ErrorControll");
 //routes
 const authRoute = require("./routes/users.js");
 const locationRoute = require("./routes/locations.js");
-
 //app
 const app = express();
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb" }));
 morgan.token("data", function (req, res) {
   return JSON.stringify(req.body);
 });

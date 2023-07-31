@@ -28,6 +28,7 @@ const login = (request, response, next) => {
   const body = request.body;
   const username = body.login;
   const password = body.password;
+  console.log("pokaz dane", username, password);
   const signInTokenSecret = process.env.SIGNIN_TOKEN;
   const refreshTokenSecret = process.env.SIGNIN_TOKEN;
   User.findOne({ $or: [{ email: username }, { login: username }] }).then(
@@ -46,7 +47,7 @@ const login = (request, response, next) => {
               },
               signInTokenSecret,
               {
-                expiresIn: "30min",
+                expiresIn: "15min",
               }
             );
             let refreshToken = jwt.sign(
@@ -75,13 +76,11 @@ const login = (request, response, next) => {
   );
 };
 const refreshToken = (request, response, next) => {
-  const refreshToken = request.body.refreshToken;
-  console.log("request", request.body.refreshToken); // ???????????
-  // console.log("body", request.body);
+  const refreshToken = request.headers.authorization.split(" ")[1];
   const refreshTokenSecret = process.env.SIGNIN_TOKEN;
   // console.log("swiezy token: ", refreshToken);
   jwt.verify(refreshToken, refreshTokenSecret, function (err, decode) {
-    // console.log("what is it: ", decode);
+    console.log("refresh Data: ", decode);
     if (err) {
       response.status(400).json({
         message: "Error",
@@ -89,7 +88,11 @@ const refreshToken = (request, response, next) => {
     } else {
       let token = jwt.sign(
         {
-          user: { name: decode.name, email: decode.email || "", id: decode.id },
+          user: {
+            name: decode.user.name,
+            email: decode.user.email || "",
+            id: decode.user.id,
+          },
         },
         refreshTokenSecret,
         {
@@ -101,6 +104,11 @@ const refreshToken = (request, response, next) => {
         message: "Token refreshed succesfully",
         token,
         refreshToken,
+        user: {
+          name: decode.user.name,
+          email: decode.user.email || "",
+          id: decode.user.id,
+        },
       });
     }
   });
