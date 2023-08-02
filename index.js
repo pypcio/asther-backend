@@ -1,3 +1,4 @@
+const path = require("path");
 const express = require("express");
 const morgan = require("morgan");
 const cors = require("cors");
@@ -9,6 +10,7 @@ const authRoute = require("./routes/users.js");
 const locationRoute = require("./routes/locations.js");
 //app
 const app = express();
+app.use(express.static("dist"));
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 morgan.token("data", function (req, res) {
@@ -23,8 +25,10 @@ app.use(
 //routes
 app.use("/api/user", authRoute);
 app.use("/api/data", locationRoute);
-
-//out of route
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "dist", "index.html"));
+});
+// Catch-all handler for unknown routes
 app.use(ErrorControll.unknownEndpoint);
 app.use(ErrorControll.errorHandler);
 
