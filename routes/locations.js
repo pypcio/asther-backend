@@ -12,6 +12,8 @@ router.get("/", userController.getUserLocations);
 router.get("/:locationId", userController.getUserLocation);
 router.post("/", userController.createUserLocation);
 router.put("/:locationId", userController.updateUserLocation);
+router.patch("/password", userController.updateUserPassword);
 router.put("/", userController.updateAllUserLocations);
 router.delete("/:locationId", userController.deleteUserLocation);
+router.delete("/", userController.deleteUser);
 module.exports = router;

@@ -28,7 +28,7 @@ const login = (request, response, next) => {
   const body = request.body;
   const username = body.login;
   const password = body.password;
-  console.log("pokaz dane", username, password);
+  // console.log("pokaz dane", username, password);
   const signInTokenSecret = process.env.SIGNIN_TOKEN;
   const refreshTokenSecret = process.env.SIGNIN_TOKEN;
   User.findOne({ $or: [{ email: username }, { login: username }] }).then(
@@ -80,7 +80,7 @@ const refreshToken = (request, response, next) => {
   const refreshTokenSecret = process.env.SIGNIN_TOKEN;
   // console.log("swiezy token: ", refreshToken);
   jwt.verify(refreshToken, refreshTokenSecret, function (err, decode) {
-    console.log("refresh Data: ", decode);
+    // console.log("refresh Data: ", decode);
     if (err) {
       response.status(400).json({
         message: "Error",

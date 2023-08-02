@@ -1,4 +1,5 @@
 const User = require("../models/user.js");
+const bcypt = require("bcrypt");
 const { matchSorter } = require("match-sorter");
 const mongoose = require("mongoose");
 //get 1 User
@@ -23,14 +24,53 @@ const getUsers = (request, response, next) => {
 };
 //delete user
 const deleteUser = async (request, response, next) => {
+  const {
+    user: { id },
+  } = request.user;
+  // console.log("paramId", id);
   try {
-    const deleteUser = await User.findByIdAndRemove(request.params.id);
+    const deleteUser = await User.findByIdAndRemove(id);
     response.status(204).end();
   } catch (error) {
     next(error);
   }
 };
-
+//change password
+const updateUserPassword = async (request, response, next) => {
+  const {
+    user: { id },
+  } = request.user;
+  const { password, password2 } = request.body;
+  // console.log("passwords", request.body);
+  try {
+    const user = await User.findById(id);
+    bcypt.compare(password, user.password, function (err, result) {
+      if (err) {
+        response.json({
+          error: err,
+        });
+      }
+      if (result) {
+        bcypt.hash(password2, 10, async function (err, hashedPass) {
+          if (err) {
+            response.json({ error: err });
+          }
+          user.password = hashedPass; //save new password
+          const saveUpdatedLocation = await user.save();
+        });
+        response.status(200).json({
+          message: "password changed sucessfully!",
+        });
+      } else {
+        response.json({
+          message: "Password incorect",
+        });
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 //get all location
 const getUserLocations = async (request, response, next) => {
   const {
@@ -114,28 +154,34 @@ const updateAllUserLocations = async (request, response, next) => {
   const {
     user: { id },
   } = request.user;
-  updatedArray = request.body;
-  // console.log("updatedArray", updatedArray);
+  const updatedArray = request.body; // Make sure to declare updatedArray using const or let
   try {
     const user = await User.findById(id);
-    if (updatedArray.length !== 0) {
-      for (let i = 0; i < user.data.length; i++) {
-        if (user.data[i].location.city !== undefined) {
-          user.data[i].location.current = updatedArray[i].current;
-          user.data[i].location.hourly = updatedArray[i].hourly;
-          user.data[i].location.daily = updatedArray[i].daily;
-        }
-      }
-      const saveUpdatedLocation = await user.save();
-      response.json(user.data);
-    } else {
-      // Handle the case when updatedArray is empty.
-      response.status(400).json({ message: "No data to update." });
+    if (
+      !updatedArray ||
+      !Array.isArray(updatedArray) ||
+      updatedArray.length !== user.data.length
+    ) {
+      // Handle error case where lengths don't match or updatedArray is not an array
+      return response
+        .status(400)
+        .json({ message: "Data lengths do not match or invalid data." });
     }
+    for (let i = 0; i < user.data.length; i++) {
+      if (user.data[i].location.city !== undefined) {
+        // console.log("test currrent: ", i === 0 ? updatedArray[i].current : "");
+        user.data[i].location.current = updatedArray[i].current;
+        user.data[i].location.hourly = updatedArray[i].hourly;
+        user.data[i].location.daily = updatedArray[i].daily;
+      }
+    }
+    const saveUpdatedLocation = await user.save();
+    response.json(user.data);
   } catch (error) {
     next(error);
   }
 };
+
 //delete one location
 const deleteUserLocation = async (request, response, next) => {
   const {
@@ -166,4 +212,5 @@ module.exports = {
   createUserLocation,
   updateUserLocation,
   updateAllUserLocations,
+  updateUserPassword,
 };
