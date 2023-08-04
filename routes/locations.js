@@ -3,8 +3,8 @@
 const express = require("express");
 const router = express.Router();
 const userController = require("../controllers/locationControll");
+const locationController = require("../controllers/APIsController");
 const authenticate = require("../middleware/authenticate");
-
 router.use(authenticate);
 // router.get("/", userController.getUser);
 // router.delete("/", userController.deleteUser);
@@ -16,4 +16,7 @@ router.patch("/password", userController.updateUserPassword);
 router.put("/", userController.updateAllUserLocations);
 router.delete("/:locationId", userController.deleteUserLocation);
 router.delete("/", userController.deleteUser);
+//apis
+router.post("/weather", locationController.getWeather);
+router.post("/geolocation", locationController.geocodingGoogleApi);
 module.exports = router;

@@ -1,7 +1,6 @@
 const User = require("../models/user.js");
 const bcypt = require("bcrypt");
-const { matchSorter } = require("match-sorter");
-const mongoose = require("mongoose");
+const locationController = require("../controllers/APIsController.js");
 //get 1 User
 const getUser = (request, response, next) => {
   const {
@@ -87,7 +86,6 @@ const getUserLocations = async (request, response, next) => {
     next(error);
   }
 };
-//get one location
 const getUserLocation = async (request, response, next) => {
   const {
     user: { id },
@@ -144,39 +142,51 @@ const updateUserLocation = async (request, response, next) => {
     user.data[locationIndex].location.hourly = hourly;
     user.data[locationIndex].location.daily = daily;
     const saveUpdatedLocation = await user.save();
-    response.json(user.data[locationIndex]);
+    // response.json(user.data[locationIndex]);
+    response.status(200).json({ message: "Location updated successfully." });
   } catch (error) {
     next(error);
   }
 };
+
 //update all locations
 const updateAllUserLocations = async (request, response, next) => {
   const {
     user: { id },
   } = request.user;
-  const updatedArray = request.body; // Make sure to declare updatedArray using const or let
   try {
     const user = await User.findById(id);
+    const fetchData = user.data.map(async (weather) => {
+      if (weather.location.city !== undefined) {
+        return await locationController.fetchWeatherData(
+          weather.location.lat,
+          weather.location.lon
+        );
+      } else {
+        return weather;
+      }
+    });
+
+    const updatedArray = await Promise.all(fetchData);
+
     if (
       !updatedArray ||
       !Array.isArray(updatedArray) ||
       updatedArray.length !== user.data.length
     ) {
-      // Handle error case where lengths don't match or updatedArray is not an array
       return response
         .status(400)
         .json({ message: "Data lengths do not match or invalid data." });
     }
+
     for (let i = 0; i < user.data.length; i++) {
       if (user.data[i].location.city !== undefined) {
-        // console.log("test currrent: ", i === 0 ? updatedArray[i].current : "");
-        user.data[i].location.current = updatedArray[i].current;
-        user.data[i].location.hourly = updatedArray[i].hourly;
-        user.data[i].location.daily = updatedArray[i].daily;
+        Object.assign(user.data[i].location, updatedArray[i]);
       }
     }
+
     const saveUpdatedLocation = await user.save();
-    response.json(user.data);
+    response.status(200).json({ message: "Locations updated successfully." });
   } catch (error) {
     next(error);
   }
