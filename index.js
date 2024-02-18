@@ -4,15 +4,14 @@ const morgan = require("morgan");
 const cors = require("cors");
 require("dotenv").config();
 //middleware
-const ErrorControll = require("./controllers/ErrorControll");
+const ErrorControll = require("./controllers/ErrorController.js");
 //routes
 const authRoute = require("./routes/users.js");
 const locationRoute = require("./routes/locations.js");
 //app
 const app = express();
-// app.use(express.static("dist"));
-app.use(express.static(path.join(__dirname, "dist")));
-app.use(express.json({ limit: "50mb" }));
+app.use(express.static("dist"));
+// app.use(express.static(path.join(__dirname, "dist")));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 morgan.token("data", function (req, res) {
   return JSON.stringify(req.body);
